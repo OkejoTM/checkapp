@@ -1,0 +1,19 @@
+version: '3.4'
+
+service:
+  checkapp_api:
+    networks:
+      - checkapp-network
+    container_name: checkapp_api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    build:
+      context: ./backend/CheckApi
+      dockerfile: ./CheckApi.Api/Dockerfile
+    ports:
+      - "5000:80"
+
+  checkapp_frontend:
+    networks:
+      - checkapp-network
+    build: ./
