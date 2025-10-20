@@ -19,21 +19,6 @@ services:
     networks:
       - checkapp-network
 
-  checkapp_frontend:
-    container_name: checkapp_frontend
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=${NODE_ENV}
-      - API_BASE_URL=${API_BASE_URL}
-    depends_on:
-      - checkapp_api
-    networks:
-      - checkapp-network
-
   checkapp_db:
     container_name: checkapp_db
     image: postgres:16.3
