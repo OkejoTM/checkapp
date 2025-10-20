@@ -10,7 +10,6 @@ WORKDIR /src
 COPY ["CheckApi.Api/CheckApi.Api.csproj", "CheckApi.Api/"]
 COPY ["CheckApi.Infrastructure/CheckApi.Infrastructure.csproj", "CheckApi.Infrastructure/"]
 COPY ["CheckApi.Domain/CheckApi.Domain.csproj", "CheckApi.Domain/"]
-COPY ["CheckApi.Api/appsettings.Sample.json" , "CheckApi.Api/appsettings.json"]
 RUN dotnet restore "CheckApi.Api/CheckApi.Api.csproj"
 
 COPY . .
