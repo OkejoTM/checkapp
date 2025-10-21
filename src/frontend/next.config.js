@@ -1,7 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Делаем переменную доступной в браузере через рантайм конфиг
+  publicRuntimeConfig: {
+    API_BASE_URL: process.env.API_BASE_URL
+  },
   env: {
-    API_BASE_URL: process.env.API_BASE_URL || 'http://localhost:5000'
+    // Для клиента используем NEXT_PUBLIC_ префикс
+    NEXT_PUBLIC_API_BASE_URL: process.env.API_BASE_URL
   },
   // Включаем standalone для Docker
   output: 'standalone',
@@ -13,9 +18,9 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Отключаем TypeScript проверки во время сборки в production (опционально)
+  // Отключаем TypeScript проверки во время сборки в production
   typescript: {
-    ignoreBuildErrors: process.env.NODE_ENV === 'Development' || process.env.NODE_ENV === 'production',
+    ignoreBuildErrors: true,
   }
 }
 

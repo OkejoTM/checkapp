@@ -3,23 +3,40 @@ stages:
   - deploy
 
 variables:
-  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-  LATEST_TAG: $CI_REGISTRY_IMAGE:latest
+  BACKEND_IMAGE_TAG: $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA
+  BACKEND_LATEST_TAG: $CI_REGISTRY_IMAGE/backend:latest
+  FRONTEND_IMAGE_TAG: $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA
+  FRONTEND_LATEST_TAG: $CI_REGISTRY_IMAGE/frontend:latest
 
-build:
+build_backend:
   stage: build
   image: docker:24-dind
   services:
     - docker:24-dind
   before_script:
-    - echo $CI_TOKEN | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
   script:
     - cd src/backend/CheckApi
-    - docker build -f CheckApi.Api/Dockerfile -t $IMAGE_TAG -t $LATEST_TAG .
-    - docker push $IMAGE_TAG
-    - docker push $LATEST_TAG
+    - docker build -f CheckApi.Api/Dockerfile -t $BACKEND_IMAGE_TAG -t $BACKEND_LATEST_TAG .
+    - docker push $BACKEND_IMAGE_TAG
+    - docker push $BACKEND_LATEST_TAG
   only:
     - main    
+
+build_frontend:
+  stage: build
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  before_script:
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+  script:
+    - cd src/frontend
+    - docker build -t $FRONTEND_IMAGE_TAG -t $FRONTEND_LATEST_TAG .
+    - docker push $FRONTEND_IMAGE_TAG
+    - docker push $FRONTEND_LATEST_TAG
+  only:
+    - main
 
 deploy:
   stage: deploy
@@ -35,12 +52,10 @@ deploy:
     - ssh-keyscan -H $VPS_HOST >> ~/.ssh/known_hosts
     
   script:
-    - ssh $VPS_USER@$VPS_HOST "echo $CI_TOKEN | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY"
-    
-    - ssh $VPS_USER@$VPS_HOST "cd ~/checkapp && docker pull $LATEST_TAG"
-    
-    - ssh $VPS_USER@$VPS_HOST "cd ~/checkapp && docker compose pull checkapp_api"
-    - ssh $VPS_USER@$VPS_HOST "cd ~/checkapp && docker compose up -d --no-deps checkapp_api"
+    - ssh $VPS_USER@$VPS_HOST "echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY"
+        
+    - ssh $VPS_USER@$VPS_HOST "cd ~/checkapp && docker compose pull"
+    - ssh $VPS_USER@$VPS_HOST "cd ~/checkapp && docker compose up -d"
     
     - ssh $VPS_USER@$VPS_HOST "docker image prune -f"
     
@@ -49,4 +64,7 @@ deploy:
     
   environment:
     name: production
-    url: http://$VPS_HOST:5000
+    url: http://$VPS_HOST
+  needs:
+    - build_backend
+    - build_frontend

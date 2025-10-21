@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { TodoTask, CreateTaskRequest, UpdateTaskRequest } from '@/types';
 
-const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:5000';
+// NEXT_PUBLIC_ префикс делает переменную доступной в браузере
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
