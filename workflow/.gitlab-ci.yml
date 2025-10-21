@@ -2,15 +2,51 @@ stages:
   - build
   - deploy
 
-build-job:      
-  stage: build
-  script:
-    - echo "Compiling the code..."
-    - echo "Compile complete."
+variables:
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  LATEST_TAG: $CI_REGISTRY_IMAGE:latest
 
-deploy-job:      
-  stage: deploy  
-  environment: production
+build:
+  stage: build
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  before_script:
+    - echo $CI_TOKEN | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
   script:
-    - echo "Deploying application..."
-    - echo "Application successfully deployed."
+    - cd src/backend/CheckApi
+    - docker build -f CheckApi.Api/Dockerfile -t $IMAGE_TAG -t $LATEST_TAG .
+    - docker push $IMAGE_TAG
+    - docker push $LATEST_TAG
+  only:
+    - main    
+
+deploy:
+  stage: deploy
+  image: alpine:latest
+  before_script:  
+    - apk add --no-cache openssh-client coreutils
+        
+    - eval $(ssh-agent -s)
+    - echo "$VPS_SSH_PRIVATE_KEY" | base64 -d | tr -d '\r' | ssh-add -
+    
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H $VPS_HOST >> ~/.ssh/known_hosts
+    
+  script:
+    - ssh $VPS_USER@$VPS_HOST "echo $CI_TOKEN | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY"
+    
+    - ssh $VPS_USER@$VPS_HOST "cd ~/checkapp && docker pull $LATEST_TAG"
+    
+    - ssh $VPS_USER@$VPS_HOST "cd ~/checkapp && docker compose pull checkapp_api"
+    - ssh $VPS_USER@$VPS_HOST "cd ~/checkapp && docker compose up -d --no-deps checkapp_api"
+    
+    - ssh $VPS_USER@$VPS_HOST "docker image prune -f"
+    
+  only:
+    - main
+    
+  environment:
+    name: production
+    url: http://$VPS_HOST:5000
